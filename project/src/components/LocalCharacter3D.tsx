@@ -270,10 +270,10 @@ const LocalCharacter3D: React.FC<LocalCharacter3DProps> = ({
 
 // Preload GLTF models for better performance
 useGLTF.preload('/models/scene.gltf');
-useGLTF.preload('/models/scene.gltf');
-useGLTF.preload('/models/scene.gltf');
-useGLTF.preload('/models/scene.gltf');
-useGLTF.preload('/models/scene.gltf');
-useGLTF.preload('/models/scene.gltf');
+// useGLTF.preload('/models/scene.gltf');
+// useGLTF.preload('/models/scene.gltf');
+// useGLTF.preload('/models/scene.gltf');
+// useGLTF.preload('/models/scene.gltf');
+// useGLTF.preload('/models/scene.gltf');
 
 export default LocalCharacter3D;
