@@ -1,6 +1,6 @@
-import React, { Suspense, useRef, useEffect } from 'react';
+import React, { Suspense, useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Environment } from '@react-three/drei';
+import { OrbitControls, Environment, useGLTF } from '@react-three/drei';
 import { Group as ThreeGroup, Mesh } from 'three';
 import { Group } from '../types';
 
@@ -10,6 +10,73 @@ interface ModelProps {
 }
 
 function Model({ character, isSleeping }: ModelProps) {
+  const meshRef = useRef<ThreeGroup>(null);
+
+  // Construct the path to the GLTF file based on character type
+  const modelPath = useMemo(() => {
+    return `/models/${character.type}.gltf`;
+  }, [character.type]);
+
+  // Load the GLTF model
+  const { scene } = useGLTF(modelPath);
+  
+  // Clone the scene to ensure each instance is independent
+  const clonedScene = useMemo(() => scene.clone(), [scene]);
+
+  useFrame((state) => {
+    if (!meshRef.current) return;
+
+    // Gentle floating animation
+    const time = state.clock.getElapsedTime();
+    meshRef.current.position.y = Math.sin(time * 2) * 0.1;
+
+    // Rotation based on character expression
+    if (character.expression === 'excited') {
+      meshRef.current.rotation.y = Math.sin(time * 4) * 0.1;
+    } else if (isSleeping) {
+      meshRef.current.rotation.z = Math.sin(time * 1) * 0.05;
+    }
+  });
+
+  return (
+    <group ref={meshRef} scale={1.2}>
+      {/* Render the loaded GLTF model */}
+      <primitive object={clonedScene} />
+      
+      {/* Expression indicators - these remain as separate meshes */}
+      {character.expression === 'excited' && (
+        <>
+          {/* Excited sparkles */}
+          <mesh position={[0.3, 0.5, 0.2]}>
+            <octahedronGeometry args={[0.05]} />
+            <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={0.3} />
+          </mesh>
+          <mesh position={[-0.3, 0.4, 0.1]}>
+            <octahedronGeometry args={[0.03]} />
+            <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={0.3} />
+          </mesh>
+        </>
+      )}
+      
+      {isSleeping && (
+        <>
+          {/* Sleep Z's */}
+          <mesh position={[0.4, 0.6, 0]} rotation={[0, 0, 0.3]}>
+            <boxGeometry args={[0.08, 0.08, 0.02]} />
+            <meshStandardMaterial color="#94a3b8" />
+          </mesh>
+          <mesh position={[0.5, 0.8, 0]} rotation={[0, 0, 0.3]}>
+            <boxGeometry args={[0.06, 0.06, 0.02]} />
+            <meshStandardMaterial color="#cbd5e1" />
+          </mesh>
+        </>
+      )}
+    </group>
+  );
+}
+
+// Fallback component for when GLTF model fails to load
+function FallbackModel({ character, isSleeping }: ModelProps) {
   const meshRef = useRef<ThreeGroup>(null);
   const headRef = useRef<Mesh>(null);
   const bodyRef = useRef<Mesh>(null);
@@ -171,7 +238,7 @@ const LocalCharacter3D: React.FC<LocalCharacter3DProps> = ({
         camera={{ position: [0, 0, 4], fov: 50 }}
         className="w-full h-full"
       >
-        <Suspense fallback={null}>
+        <Suspense fallback={<FallbackModel character={character} isSleeping={isSleeping} />}>
           {/* Lighting */}
           <ambientLight intensity={0.6} />
           <directionalLight position={[10, 10, 5]} intensity={1} />
@@ -180,7 +247,7 @@ const LocalCharacter3D: React.FC<LocalCharacter3DProps> = ({
           {/* Environment for better lighting */}
           <Environment preset="studio" />
           
-          {/* 3D Model */}
+          {/* 3D Model with error boundary fallback */}
           <Model 
             character={character}
             isSleeping={isSleeping}
@@ -200,5 +267,13 @@ const LocalCharacter3D: React.FC<LocalCharacter3DProps> = ({
     </div>
   );
 };
+
+// Preload GLTF models for better performance
+useGLTF.preload('/models/scene.gltf');
+useGLTF.preload('/models/scene.gltf');
+useGLTF.preload('/models/scene.gltf');
+useGLTF.preload('/models/scene.gltf');
+useGLTF.preload('/models/scene.gltf');
+useGLTF.preload('/models/scene.gltf');
 
 export default LocalCharacter3D;
