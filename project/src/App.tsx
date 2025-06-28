@@ -1,108 +1,92 @@
 import React, { useState } from 'react';
-import { mockGroups, sessions, adminCredentials } from './data/mockData';
-import { Group, Session, User } from './types';
-import { useLocalStorage } from './hooks/useLocalStorage';
-import { useTimeBasedExpression } from './hooks/useTimeBasedExpression';
-import LearnerView from './components/LearnerView';
-import GroupDetailView from './components/GroupDetailView';
-import ContentView from './components/ContentView';
-import Sidebar from './components/Sidebar';
-import LoginModal from './components/LoginModal';
-import Header from './components/Header';
+import LocalCharacter3D from './components/LocalCharacter3D';
 
 function App() {
-  const [groups, setGroups] = useLocalStorage<Group[]>('sql-groups', mockGroups);
-  const [sessionsData, setSessionsData] = useLocalStorage<Session[]>('sql-sessions', sessions);
-  const [user, setUser] = useState<User>({ isAdmin: false });
-  const [currentView, setCurrentView] = useState<'learner' | 'content' | 'group'>('learner');
-  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const isSleepingTime = useTimeBasedExpression();
-
-  const handleLogin = (id: string, password: string) => {
-    if (id === adminCredentials.id && password === adminCredentials.password) {
-      setUser({ isAdmin: true, adminCredentials });
-      setShowLoginModal(false);
-      return true;
-    }
-    return false;
-  };
-
-  const handleLogout = () => {
-    setUser({ isAdmin: false });
-    setCurrentView('learner');
-  };
-
-  const handleGroupClick = (group: Group) => {
-    setSelectedGroup(group);
-    setCurrentView('group');
-  };
-
-  const handleBackToLearner = () => {
-    setCurrentView('learner');
-    setSelectedGroup(null);
-  };
-
-  const handleUpdateGroup = (updatedGroup: Group) => {
-    setGroups(prevGroups => 
-      prevGroups.map(g => g.id === updatedGroup.id ? updatedGroup : g)
-    );
-    setSelectedGroup(updatedGroup);
-  };
-
-  const sortedGroups = [...groups].sort((a, b) => b.points - a.points);
+  const [expression, setExpression] = useState<'normal' | 'excited'>('normal');
+  const [isSleeping, setIsSleeping] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white">
-      <div className="absolute inset-0 bg-gradient-to-r from-purple-900/10 via-transparent to-yellow-900/10 pointer-events-none"></div>
-      
-      <Header 
-        user={user} 
-        onLoginClick={() => setShowLoginModal(true)}
-        onLogout={handleLogout}
-      />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-4xl font-bold text-center mb-8 text-gray-800">
+          Pikachu 3D Model Test
+        </h1>
+        
+        {/* Controls */}
+        <div className="flex justify-center gap-4 mb-8">
+          <button
+            onClick={() => setExpression('normal')}
+            className={`px-4 py-2 rounded-lg ${
+              expression === 'normal' 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-200 text-gray-700'
+            }`}
+          >
+            Normal
+          </button>
+          <button
+            onClick={() => setExpression('excited')}
+            className={`px-4 py-2 rounded-lg ${
+              expression === 'excited' 
+                ? 'bg-yellow-500 text-white' 
+                : 'bg-gray-200 text-gray-700'
+            }`}
+          >
+            Excited
+          </button>
+          <button
+            onClick={() => setIsSleeping(!isSleeping)}
+            className={`px-4 py-2 rounded-lg ${
+              isSleeping 
+                ? 'bg-purple-500 text-white' 
+                : 'bg-gray-200 text-gray-700'
+            }`}
+          >
+            {isSleeping ? 'Wake Up' : 'Sleep'}
+          </button>
+        </div>
 
-      <div className="flex">
-        <Sidebar
-          currentView={currentView}
-          onViewChange={setCurrentView}
-          onBackToLearner={handleBackToLearner}
-          isVisible={currentView !== 'group'}
-        />
-
-        <main className={`flex-1 transition-all duration-300 ${
-          currentView !== 'group' ? 'ml-64' : ''
-        }`}>
-          {currentView === 'learner' && (
-            <LearnerView
-              groups={sortedGroups}
-              onGroupClick={handleGroupClick}
-              isSleepingTime={isSleepingTime}
-              isAdmin={user.isAdmin}
+        {/* Model Display */}
+        <div className="flex justify-center items-center gap-8 mb-8">
+          <div className="text-center">
+            <h3 className="text-lg font-semibold mb-2">Small</h3>
+            <LocalCharacter3D 
+              size="small" 
+              expression={expression} 
+              isSleeping={isSleeping} 
             />
-          )}
-
-          {currentView === 'content' && (
-            <ContentView sessions={sessionsData} />
-          )}
-
-          {currentView === 'group' && selectedGroup && (
-            <GroupDetailView
-              group={selectedGroup}
-              onBackToLearner={handleBackToLearner}
-              onUpdateGroup={handleUpdateGroup}
-              isAdmin={user.isAdmin}
+          </div>
+          
+          <div className="text-center">
+            <h3 className="text-lg font-semibold mb-2">Medium</h3>
+            <LocalCharacter3D 
+              size="medium" 
+              expression={expression} 
+              isSleeping={isSleeping} 
             />
-          )}
-        </main>
+          </div>
+          
+          <div className="text-center">
+            <h3 className="text-lg font-semibold mb-2">Large</h3>
+            <LocalCharacter3D 
+              size="large" 
+              expression={expression} 
+              isSleeping={isSleeping} 
+            />
+          </div>
+        </div>
+
+        {/* Debug Info */}
+        <div className="bg-white rounded-lg p-4 shadow-md">
+          <h3 className="text-lg font-semibold mb-2">Debug Information</h3>
+          <p><strong>Expression:</strong> {expression}</p>
+          <p><strong>Sleeping:</strong> {isSleeping ? 'Yes' : 'No'}</p>
+          <p><strong>Model Path:</strong> /modles/pikachu/pikachu.gltf</p>
+          <p className="text-sm text-gray-600 mt-2">
+            The Pikachu model should be loading and animating automatically. Check the browser console for any loading errors.
+          </p>
+        </div>
       </div>
-
-      {showLoginModal && (
-        <LoginModal
-          onLogin={handleLogin}
-          onClose={() => setShowLoginModal(false)}
-        />
-      )}
     </div>
   );
 }

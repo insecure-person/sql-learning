@@ -1,186 +1,88 @@
 import React, { Suspense, useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Environment, useGLTF } from '@react-three/drei';
-import { Group as ThreeGroup, Mesh } from 'three';
-import { Group } from '../types';
+import { Group as ThreeGroup } from 'three';
 
-interface ModelProps {
-  character: Group['character'];
+interface PikachuModelProps {
   isSleeping: boolean;
+  expression?: 'normal' | 'excited';
 }
 
-function Model({ character, isSleeping }: ModelProps) {
+function PikachuModel({ isSleeping, expression = 'normal' }: PikachuModelProps) {
   const meshRef = useRef<ThreeGroup>(null);
 
-  // Construct the path to the GLTF file based on character type
-  const modelPath = useMemo(() => {
-    return `/models/${character.type}.gltf`;
-  }, [character.type]);
-
-  // Load the GLTF model
-  const { scene } = useGLTF(modelPath);
+  // Load the Pikachu GLTF model from the correct path
+  const { scene } = useGLTF('/modles/pikachu/pikachu.gltf');
   
   // Clone the scene to ensure each instance is independent
-  const clonedScene = useMemo(() => scene.clone(), [scene]);
+  const clonedScene = useMemo(() => {
+    const cloned = scene.clone();
+    // Ensure the model is properly positioned and scaled
+    cloned.position.set(0, 0, 0);
+    cloned.scale.set(1, 1, 1);
+    return cloned;
+  }, [scene]);
 
   useFrame((state) => {
     if (!meshRef.current) return;
 
-    // Gentle floating animation
     const time = state.clock.getElapsedTime();
-    meshRef.current.position.y = Math.sin(time * 2) * 0.1;
 
-    // Rotation based on character expression
-    if (character.expression === 'excited') {
-      meshRef.current.rotation.y = Math.sin(time * 4) * 0.1;
+    // Autoplay animations
+    // Gentle floating animation
+    meshRef.current.position.y = Math.sin(time * 1.5) * 0.15;
+
+    // Gentle rotation animation
+    meshRef.current.rotation.y = Math.sin(time * 0.5) * 0.1;
+
+    // Expression-based animations
+    if (expression === 'excited') {
+      meshRef.current.rotation.y = Math.sin(time * 3) * 0.2;
+      meshRef.current.position.y = Math.sin(time * 3) * 0.2;
     } else if (isSleeping) {
-      meshRef.current.rotation.z = Math.sin(time * 1) * 0.05;
+      meshRef.current.rotation.z = Math.sin(time * 0.8) * 0.08;
+      meshRef.current.position.y = Math.sin(time * 0.8) * 0.1;
     }
   });
 
   return (
-    <group ref={meshRef} scale={1.2}>
-      {/* Render the loaded GLTF model */}
+    <group ref={meshRef} scale={1.5}>
+      {/* Render the loaded Pikachu GLTF model */}
       <primitive object={clonedScene} />
       
-      {/* Expression indicators - these remain as separate meshes */}
-      {character.expression === 'excited' && (
-        <>
-          {/* Excited sparkles */}
-          <mesh position={[0.3, 0.5, 0.2]}>
-            <octahedronGeometry args={[0.05]} />
-            <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={0.3} />
-          </mesh>
-          <mesh position={[-0.3, 0.4, 0.1]}>
-            <octahedronGeometry args={[0.03]} />
-            <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={0.3} />
-          </mesh>
-        </>
-      )}
-      
-      {isSleeping && (
-        <>
-          {/* Sleep Z's */}
-          <mesh position={[0.4, 0.6, 0]} rotation={[0, 0, 0.3]}>
-            <boxGeometry args={[0.08, 0.08, 0.02]} />
-            <meshStandardMaterial color="#94a3b8" />
-          </mesh>
-          <mesh position={[0.5, 0.8, 0]} rotation={[0, 0, 0.3]}>
-            <boxGeometry args={[0.06, 0.06, 0.02]} />
-            <meshStandardMaterial color="#cbd5e1" />
-          </mesh>
-        </>
-      )}
-    </group>
-  );
-}
-
-// Fallback component for when GLTF model fails to load
-function FallbackModel({ character, isSleeping }: ModelProps) {
-  const meshRef = useRef<ThreeGroup>(null);
-  const headRef = useRef<Mesh>(null);
-  const bodyRef = useRef<Mesh>(null);
-
-  useFrame((state) => {
-    if (!meshRef.current) return;
-
-    // Gentle floating animation
-    const time = state.clock.getElapsedTime();
-    meshRef.current.position.y = Math.sin(time * 2) * 0.1;
-
-    // Rotation based on character expression
-    if (character.expression === 'excited') {
-      meshRef.current.rotation.y = Math.sin(time * 4) * 0.1;
-    } else if (isSleeping) {
-      meshRef.current.rotation.z = Math.sin(time * 1) * 0.05;
-    }
-
-    // Head bobbing animation
-    if (headRef.current) {
-      headRef.current.rotation.x = Math.sin(time * 3) * 0.05;
-    }
-  });
-
-  const getCharacterColors = () => {
-    switch (character.type) {
-      case 'athletic-woman':
-        return { primary: '#ec4899', secondary: '#f472b6' };
-      case 'athletic-men':
-        return { primary: '#3b82f6', secondary: '#60a5fa' };
-      case 'scholar':
-        return { primary: '#f59e0b', secondary: '#fbbf24' };
-      case 'trainer':
-        return { primary: '#10b981', secondary: '#34d399' };
-      case 'student':
-        return { primary: '#8b5cf6', secondary: '#a78bfa' };
-      case 'mentor':
-        return { primary: '#6b7280', secondary: '#9ca3af' };
-      default:
-        return { primary: '#6366f1', secondary: '#818cf8' };
-    }
-  };
-
-  const colors = getCharacterColors();
-
-  return (
-    <group ref={meshRef} scale={1.2}>
-      {/* Body */}
-      <mesh ref={bodyRef} position={[0, -0.5, 0]}>
-        <cylinderGeometry args={[0.3, 0.4, 1, 8]} />
-        <meshStandardMaterial color={colors.primary} />
-      </mesh>
-      
-      {/* Head */}
-      <mesh ref={headRef} position={[0, 0.3, 0]}>
-        <sphereGeometry args={[0.25, 16, 16]} />
-        <meshStandardMaterial color={colors.secondary} />
-      </mesh>
-      
-      {/* Arms */}
-      <mesh position={[-0.4, -0.2, 0]} rotation={[0, 0, 0.3]}>
-        <cylinderGeometry args={[0.08, 0.08, 0.6, 8]} />
-        <meshStandardMaterial color={colors.primary} />
-      </mesh>
-      <mesh position={[0.4, -0.2, 0]} rotation={[0, 0, -0.3]}>
-        <cylinderGeometry args={[0.08, 0.08, 0.6, 8]} />
-        <meshStandardMaterial color={colors.primary} />
-      </mesh>
-      
-      {/* Legs */}
-      <mesh position={[-0.15, -1.2, 0]}>
-        <cylinderGeometry args={[0.08, 0.08, 0.8, 8]} />
-        <meshStandardMaterial color={colors.secondary} />
-      </mesh>
-      <mesh position={[0.15, -1.2, 0]}>
-        <cylinderGeometry args={[0.08, 0.08, 0.8, 8]} />
-        <meshStandardMaterial color={colors.secondary} />
-      </mesh>
-
       {/* Expression indicators */}
-      {character.expression === 'excited' && (
+      {expression === 'excited' && (
         <>
-          {/* Excited sparkles */}
-          <mesh position={[0.3, 0.5, 0.2]}>
-            <octahedronGeometry args={[0.05]} />
-            <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={0.3} />
+          {/* Excited sparkles with animation */}
+          <mesh position={[0.4, 0.6, 0.3]}>
+            <octahedronGeometry args={[0.06]} />
+            <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={0.5} />
           </mesh>
-          <mesh position={[-0.3, 0.4, 0.1]}>
+          <mesh position={[-0.4, 0.5, 0.2]}>
+            <octahedronGeometry args={[0.04]} />
+            <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={0.5} />
+          </mesh>
+          <mesh position={[0.2, 0.8, 0.1]}>
             <octahedronGeometry args={[0.03]} />
-            <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={0.3} />
+            <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={0.5} />
           </mesh>
         </>
       )}
       
       {isSleeping && (
         <>
-          {/* Sleep Z's */}
-          <mesh position={[0.4, 0.6, 0]} rotation={[0, 0, 0.3]}>
-            <boxGeometry args={[0.08, 0.08, 0.02]} />
+          {/* Animated Sleep Z's */}
+          <mesh position={[0.5, 0.7, 0]} rotation={[0, 0, 0.3]}>
+            <boxGeometry args={[0.1, 0.1, 0.02]} />
             <meshStandardMaterial color="#94a3b8" />
           </mesh>
-          <mesh position={[0.5, 0.8, 0]} rotation={[0, 0, 0.3]}>
-            <boxGeometry args={[0.06, 0.06, 0.02]} />
+          <mesh position={[0.6, 0.9, 0]} rotation={[0, 0, 0.3]}>
+            <boxGeometry args={[0.08, 0.08, 0.02]} />
             <meshStandardMaterial color="#cbd5e1" />
+          </mesh>
+          <mesh position={[0.7, 1.1, 0]} rotation={[0, 0, 0.3]}>
+            <boxGeometry args={[0.06, 0.06, 0.02]} />
+            <meshStandardMaterial color="#e2e8f0" />
           </mesh>
         </>
       )}
@@ -189,14 +91,14 @@ function FallbackModel({ character, isSleeping }: ModelProps) {
 }
 
 interface LocalCharacter3DProps {
-  character: Group['character'];
-  isSleeping: boolean;
+  isSleeping?: boolean;
+  expression?: 'normal' | 'excited';
   size?: 'small' | 'medium' | 'large';
 }
 
 const LocalCharacter3D: React.FC<LocalCharacter3DProps> = ({ 
-  character, 
-  isSleeping, 
+  isSleeping = false, 
+  expression = 'normal',
   size = 'medium' 
 }) => {
   const getSizeClasses = () => {
@@ -210,47 +112,30 @@ const LocalCharacter3D: React.FC<LocalCharacter3DProps> = ({
     }
   };
 
-  const getCharacterGradient = () => {
-    switch (character.type) {
-      case 'athletic-woman':
-        return 'from-pink-400 via-purple-400 to-indigo-400';
-      case 'athletic-men':
-        return 'from-blue-400 via-cyan-400 to-teal-400';
-      case 'scholar':
-        return 'from-amber-400 via-orange-400 to-red-400';
-      case 'trainer':
-        return 'from-green-400 via-emerald-400 to-teal-400';
-      case 'student':
-        return 'from-violet-400 via-purple-400 to-fuchsia-400';
-      case 'mentor':
-        return 'from-slate-400 via-gray-400 to-zinc-400';
-      default:
-        return 'from-blue-400 via-purple-400 to-pink-400';
-    }
-  };
-
   return (
     <div className={`relative ${getSizeClasses()} rounded-2xl overflow-hidden`}>
-      {/* 3D Canvas Background */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${getCharacterGradient()} opacity-20`}></div>
+      {/* Pikachu-themed background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 via-amber-400 to-orange-400 opacity-20"></div>
       
       <Canvas
-        camera={{ position: [0, 0, 4], fov: 50 }}
+        camera={{ position: [0, 0, 3], fov: 60 }}
         className="w-full h-full"
+        gl={{ antialias: true, alpha: true }}
       >
-        <Suspense fallback={<FallbackModel character={character} isSleeping={isSleeping} />}>
-          {/* Lighting */}
-          <ambientLight intensity={0.6} />
-          <directionalLight position={[10, 10, 5]} intensity={1} />
-          <pointLight position={[-10, -10, -5]} intensity={0.5} />
+        <Suspense fallback={null}>
+          {/* Enhanced Lighting */}
+          <ambientLight intensity={0.8} />
+          <directionalLight position={[5, 5, 5]} intensity={1.2} />
+          <directionalLight position={[-5, 5, -5]} intensity={0.8} />
+          <pointLight position={[0, 5, 0]} intensity={0.5} />
           
           {/* Environment for better lighting */}
-          <Environment preset="studio" />
+          <Environment preset="sunset" />
           
-          {/* 3D Model with error boundary fallback */}
-          <Model 
-            character={character}
+          {/* Pikachu Model */}
+          <PikachuModel 
             isSleeping={isSleeping}
+            expression={expression}
           />
           
           {/* Controls (disabled for production, enable for development) */}
@@ -268,12 +153,7 @@ const LocalCharacter3D: React.FC<LocalCharacter3DProps> = ({
   );
 };
 
-// Preload GLTF models for better performance
-useGLTF.preload('/models/scene.gltf');
-// useGLTF.preload('/models/scene.gltf');
-// useGLTF.preload('/models/scene.gltf');
-// useGLTF.preload('/models/scene.gltf');
-// useGLTF.preload('/models/scene.gltf');
-// useGLTF.preload('/models/scene.gltf');
+// Preload Pikachu GLTF model for better performance
+useGLTF.preload('/modles/pikachu/pikachu.gltf');
 
 export default LocalCharacter3D;
